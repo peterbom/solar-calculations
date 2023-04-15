@@ -9,35 +9,38 @@ export type ViewDimensions = {
     }
 };
 
-export type SummableMonthlyDataValues = {
-    hourlyUsage: number[],
-    hourlyGeneration: number[],
-    hourlyGridRequirement: number[],
-    hourlySolarUsage: number[],
-    hourlyBatteryUsage: number[],
-    hourlyFeedback: number[]
+export type HourlyIrradianceByMonth = {
+    northWest: number[][],
+    northEast: number[][]
 };
 
-export type MonthlyDataValues = SummableMonthlyDataValues & {
-    hourlyBatteryLevels: number[]
+export type HourlyUsageByMonth = {
+    // TODO: Change or add to this to support multiple phases
+    main: number[][]
 };
 
-export type MonthlyData = {
-    hourlyData: MonthlyDataValues[],
-    cumulativeData: SummableMonthlyDataValues[]
+export type SummableMeasurement<TData> = {
+    usageKWh: TData,
+    gridUsageKWh: TData,
+    panelUsageKWh: TData,
+    batteryUsageKWh: TData,
+    generationKWh: TData,
+    resoldKWh: TData
 };
 
-export type SummaryData = {
-    annualUsage: number,
-    annualCostWithoutSolar: number,
-    annualGridRequirement: number,
-    annualGridCost: number,
-    annualFeedback: number,
-    annualFeedbackAmount: number,
-    annualCostWithSolar: number,
-    annualSaving: number,
-    timeToRecoupCost: number
+export type NonSummableMeasurement<TData> = {
+    batteryLevelKWh: TData
 };
+
+export type AllMeasurements<TData> = SummableMeasurement<TData> & NonSummableMeasurement<TData>;
+
+export type SummableHourlyMeasurementsByMonth = SummableMeasurement<number[][]>;
+
+export type HourlyMeasurementsByMonth = AllMeasurements<number[][]>;
+
+export type HourlyMeasurementsForSingleMonth = AllMeasurements<number[]>;
+
+export type AnnualMeasurements = SummableMeasurement<number>;
 
 export type NiwaSourceColumns = "Azimuth" | "Cloudless W/m2" | "Cumulative kWh/m2" | "Elevation" | "Hourly W/m2" | "Month & hour";
 
