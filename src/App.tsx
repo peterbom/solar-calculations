@@ -31,6 +31,7 @@ interface CalculatedData {
 export default function App() {
     const [loadingData, setLoadingData] = useState<LoadingData | null>(null);
     const [calculatedData, setCalculatedData] = useState<CalculatedData | null>(null);
+    const [displayCumulative, setDisplayCumulative] = useState(false);
 
     const [solarConfig, setSolarConfig] = useState<SolarConfiguration>({
         northWestNumberOfPanels: 14,
@@ -53,10 +54,9 @@ export default function App() {
         };
 
         setLoadingData(loadingData);
-        refresh(loadingData);
     }
 
-    async function refresh(loadingData: LoadingData | null) {
+    async function refresh() {
         if (loadingData === null) {
             return;
         }
@@ -74,15 +74,18 @@ export default function App() {
     }
 
     useEffect(() => {initialize()}, []);
+    useEffect(() => {refresh()}, [loadingData, solarConfig, pricingConfig]);
 
     function handleSolarConfigUpdate(config: SolarConfiguration) {
         setSolarConfig(config);
-        refresh(loadingData);
     }
 
     function handlePricingConfigUpdate(config: PricingConfiguration) {
         setPricingConfig(config);
-        refresh(loadingData);
+    }
+
+    function handleDisplayCumulativeChange() {
+        setDisplayCumulative(!displayCumulative);
     }
 
     return (
@@ -95,34 +98,39 @@ export default function App() {
                 handlePricingConfigUpdate={handlePricingConfigUpdate}
             />
             <br/>
-            <button onClick={() => refresh(loadingData)}>Refresh</button>
 
-            <h2>Total Usage</h2>
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.usageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly usage (kW)' viewDimensions={viewDimensions} />
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.usageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative usage (kW)' viewDimensions={viewDimensions} />
+            <h2>Charts</h2>
+            {/* https://medium.com/front-end-weekly/creating-a-toggle-switch-in-css-2d23e496d035 */}
+            <input type="checkbox" id="toggle-cumulative" className="toggle" checked={displayCumulative} onChange={handleDisplayCumulativeChange} />
+            <label htmlFor="toggle-cumulative" className="toggle-label"></label>
+            <label htmlFor="toggle-cumulative">Cumulative</label>
+            
+            <h3>Total Usage</h3>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.usageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly usage (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.usageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative usage (kW)' viewDimensions={viewDimensions} />}
 
-            <h2>Grid Usage</h2>
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.gridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.gridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />
+            <h3>Grid Usage</h3>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.gridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.gridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
-            <h2>Panel Usage</h2>
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.panelUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.panelUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />
+            <h3>Panel Usage</h3>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.panelUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.panelUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
-            <h2>Battery Usage</h2>
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.batteryUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.batteryUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />
+            <h3>Battery Usage</h3>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.batteryUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.batteryUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
-            <h2>Generated</h2>
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.generationKWh[i]} propertyDisplayName='Output' yAxisDescription='Hourly generation (kW)' viewDimensions={viewDimensions} />
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.generationKWh[i]} propertyDisplayName='Output' yAxisDescription='Cumulative generation (kW)' viewDimensions={viewDimensions} />
+            <h3>Generated</h3>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.generationKWh[i]} propertyDisplayName='Output' yAxisDescription='Hourly generation (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.generationKWh[i]} propertyDisplayName='Output' yAxisDescription='Cumulative generation (kW)' viewDimensions={viewDimensions} />}
 
-            <h2>Battery Storage</h2>
+            <h3>Battery Storage</h3>
             <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.batteryLevelKWh[i]} propertyDisplayName='Battery Level' yAxisDescription='Hourly level (kWh)' viewDimensions={viewDimensions} />
 
-            <h2>Feedback</h2>
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.resoldKWh[i]} propertyDisplayName='Sold' yAxisDescription='Hourly feedback (kW)' viewDimensions={viewDimensions} />
-            <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.resoldKWh[i]} propertyDisplayName='Sold' yAxisDescription='Hourly feedback (kW)' viewDimensions={viewDimensions} />
+            <h3>Feedback</h3>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.resoldKWh[i]} propertyDisplayName='Sold' yAxisDescription='Hourly feedback (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.resoldKWh[i]} propertyDisplayName='Sold' yAxisDescription='Hourly feedback (kW)' viewDimensions={viewDimensions} />}
 
             <h2>Calculations</h2>
             {getSummary(pricingConfig, calculatedData)}

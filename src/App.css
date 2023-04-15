@@ -39,3 +39,32 @@ dd {
   padding: 2px 4px;
   border-bottom: 1px solid #333;
 }
+
+.toggle-label { 
+  position : relative ;
+  display : inline-block;
+  width : 40px;
+  height : 20px;
+  background-color: #eee;
+  border-radius: 20px;
+}
+.toggle-label::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: white;
+  top: 1px;
+  left: 1px;
+  transition: all 0.3s;
+}
+.toggle:checked + .toggle-label::after {
+  left : 20px; 
+}
+.toggle:checked + .toggle-label {
+  background-color: #555;
+}
+.toggle {
+  display: none;
+}

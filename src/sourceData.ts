@@ -1,9 +1,10 @@
 import * as d3 from 'd3'
 import moment from 'moment';
 import { HourlyIrradianceByMonth, HourlyUsageByMonth, NiwaSourceColumns, PowershopUsageColumns } from './types';
-import niwaNorthWestCsv from './assets/table_mhr_northwest.csv';
-import niwaNorthEastCsv from './assets/table_mhr_northeast.csv';
-import usageCsv from './assets/powershop_daily_usage.csv';
+// https://vitejs.dev/guide/assets.html#explicit-url-imports
+import niwaNorthWestCsv from './assets/table_mhr_northwest.csv?url';
+import niwaNorthEastCsv from './assets/table_mhr_northeast.csv?url';
+import usageCsv from './assets/powershop_daily_usage.csv?url';
 import { getAverage } from './stats';
 
 export async function getHourlyIrradianceByMonth(): Promise<HourlyIrradianceByMonth> {
