@@ -1,4 +1,4 @@
-import { AnnualMeasurements, HourlyIrradianceByMonth, HourlyMeasurementsByMonth, HourlyMeasurementsForSingleMonth, HourlyUsageByMonth, SolarConfiguration, SummableHourlyMeasurementsByMonth } from "./types";
+import { AnnualMeasurements, HourlyIrradianceByMonth, HourlyMeasurementsByMonth, HourlyMeasurementsForSingleMonth, HourlyUsageByMonth, HourlyUsageValue, SolarConfiguration, SummableHourlyMeasurementsByMonth } from "./types";
 import moment from 'moment';
 import { getSum } from './stats';
 
@@ -15,7 +15,7 @@ export function getHourlyMeasurementsByMonth(
     const efficiency = getPanelEfficiency(solarConfiguration);
 
     function getSingleMonthData(monthIndex: number): HourlyMeasurementsForSingleMonth {
-        const usage = hourlyUsageByMonth.main[monthIndex];
+        const usage = hourlyUsageByMonth[monthIndex];
 
         const northWestIrradiance = hourlyIrradianceByMonth.northWest[monthIndex];
         const northEastIrradiance = hourlyIrradianceByMonth.northEast[monthIndex];
@@ -24,7 +24,8 @@ export function getHourlyMeasurementsByMonth(
         const northEastGeneration = northEastIrradiance.map(wPerSqm => getGenerationInKWh(wPerSqm, efficiency, northEastPanelArea));
         const generation = Array.from({ length: 24 }, (_, i) => northWestGeneration[i] + northEastGeneration[i]);
 
-        return getHourlyMeasurementsForSingleMonth(usage, generation, solarConfiguration.batteryCapacityKWh);
+        const totalUsage = usage.map(u => u.controlled + u.uncontrolled);
+        return getHourlyMeasurementsForSingleMonth(totalUsage, generation, solarConfiguration.batteryCapacityKWh);
     }
 
     const singleMonthMeasurements = Array.from({ length: 12 }, (_, monthIndex) => getSingleMonthData(monthIndex));

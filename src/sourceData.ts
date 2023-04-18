@@ -1,11 +1,12 @@
 import * as d3 from 'd3'
 import moment from 'moment';
-import { HourlyIrradianceByMonth, HourlyUsageByMonth, NiwaSourceColumns, PowershopUsageColumns } from './types';
+import { EcotricityUsageColumns, HourlyIrradianceByMonth, HourlyUsageByMonth, HourlyUsageValue, NiwaSourceColumns, PowershopUsageColumns } from './types';
 // https://vitejs.dev/guide/assets.html#explicit-url-imports
 import niwaNorthWestCsv from './assets/table_mhr_northwest.csv?url';
 import niwaNorthEastCsv from './assets/table_mhr_northeast.csv?url';
-import usageCsv from './assets/powershop_daily_usage.csv?url';
-import { getAverage } from './stats';
+import powershopUsageCsv from './assets/powershop_daily_usage.csv?url';
+import ecotricityUsageCsv from './assets/ecotricity_usage.csv?url';
+import { getAverage, getSum } from './stats';
 
 export async function getHourlyIrradianceByMonth(): Promise<HourlyIrradianceByMonth> {
     const niwaNorthWestData = await d3.csv<NiwaSourceColumns>(niwaNorthWestCsv);
@@ -18,11 +19,9 @@ export async function getHourlyIrradianceByMonth(): Promise<HourlyIrradianceByMo
 }
 
 export async function getHourlyUsageByMonth(): Promise<HourlyUsageByMonth> {
-    const usageData = await d3.csv<PowershopUsageColumns>(usageCsv);
-    const hourlyUsageByMonth = toHourlyUsageByMonth(usageData);
-    return {
-        main: hourlyUsageByMonth
-    };
+    const powershopUsageData = await d3.csv<PowershopUsageColumns>(powershopUsageCsv);
+    const ecotricityUsageData = await d3.csv<EcotricityUsageColumns>(ecotricityUsageCsv);
+    return toHourlyUsageByMonth(powershopUsageData, ecotricityUsageData);
 }
 
 function toHourlyIrradianceByMonth(niwaData: d3.DSVRowArray<NiwaSourceColumns>): number[][] {
@@ -38,9 +37,51 @@ function toHourlyIrradianceByMonth(niwaData: d3.DSVRowArray<NiwaSourceColumns>):
     return result;
 }
 
-function toHourlyUsageByMonth(usageData: d3.DSVRowArray<PowershopUsageColumns>): number[][] {
-    // Convert from half-hourly to hourly
-    const hourlyUsages = usageData.map(d => ({
+function toHourlyUsageByMonth(
+    powershopUsageData: d3.DSVRowArray<PowershopUsageColumns>,
+    ecotricityUsageData: d3.DSVRowArray<EcotricityUsageColumns>
+): HourlyUsageByMonth {
+    // Group Ecotricity data by month
+    const allEcotricityHourlyUsageByMonth = ecotricityUsageData.reduce((monthlyData: HourlyUsageValue[][][], row) => {
+        const time = moment(row['Time stamp'], "YYYY-MM-DD hh:mm");
+        const monthData = monthlyData[time.month()];
+        let dayDataByHour: HourlyUsageValue[]
+        if (monthData.length === 0 || time.hour() === 0 && time.minute() === 0) {
+            dayDataByHour = Array.from({length: 24}, () => ({uncontrolled: 0, controlled: 0}));
+            monthData.push(dayDataByHour);
+        } else {
+            dayDataByHour = monthData[monthData.length - 1];
+        }
+
+        dayDataByHour[time.hour()].uncontrolled += parseFloat(row['Meter 1 Value (kWh)'] || "0");
+        dayDataByHour[time.hour()].controlled += parseFloat(row['Meter 2 Value (kWh)'] || "0");
+        return monthlyData;
+    }, Array.from({length: 12}, () => []));
+
+    const avgEcotricityHourlyUsageByMonth = allEcotricityHourlyUsageByMonth.map(monthData => {
+        // Some months won't have data. Avoid divide-by-zero exceptions trying to work
+        // out the averages for these months.
+        if (monthData.length === 0) {
+            return [];
+        }
+
+        return Array.from({length: 24}, (_, hour) => ({
+            uncontrolled: getAverage(monthData.map(dayData => dayData[hour].uncontrolled)),
+            controlled: getAverage(monthData.map(dayData => dayData[hour].controlled))
+        }));
+    });
+
+    const allEcotricityHourlyUsage = allEcotricityHourlyUsageByMonth.flatMap(monthUsage => monthUsage);
+
+    // Get controlled as a proportion of total by time of day
+    const hourlyProportionOfControlledToTotal = Array.from({length: 24}, (_, hour) => {
+        const totalControlled = getSum(allEcotricityHourlyUsage.map(u => u[hour].controlled));
+        const total = getSum(allEcotricityHourlyUsage.map(u => u[hour].controlled + u[hour].uncontrolled));
+        return totalControlled / total;
+    });
+
+    // Convert Powershop data from half-hourly to hourly
+    const powershopHourlyUsages = powershopUsageData.map(d => ({
         month: moment(d.Date, "D/M/YYYY").month(),
         hourlyUsage: [
             parseFloat(d["00:00 - 00:30"]!) + parseFloat(d["00:30 - 01:00"]!) || 0,
@@ -70,12 +111,57 @@ function toHourlyUsageByMonth(usageData: d3.DSVRowArray<PowershopUsageColumns>):
         ]
     }));
 
-    return Array.from({length: 12}, (_, monthIndex) => {
-        const allDaysHourlyUsage = hourlyUsages.filter(u => u.month === monthIndex);
+    const avgPowershopHourlyUsageByMonth = Array.from({length: 12}, (_, monthIndex) => {
+        const allDaysHourlyUsage = powershopHourlyUsages.filter(u => u.month === monthIndex);
         return Array.from({length: 24}, (_, hour) => {
-            const hourUsages = allDaysHourlyUsage.map(u => u.hourlyUsage[hour]);
-            // TODO: Improve this adjustment
-            return getAverage(hourUsages) * 1.8;
+            const avgUseForHour = getAverage(allDaysHourlyUsage.map(u => u.hourlyUsage[hour]));
+            // We don't have the relationship between controlled and uncontrolled here,
+            // so use what we've found for this hour from Ecotricity.
+            const controlled = hourlyProportionOfControlledToTotal[hour] * avgUseForHour;
+            const uncontrolled = avgUseForHour - controlled;
+            return { uncontrolled, controlled };
+        });
+    });
+
+    // For the data that we do have, get the relative increase between Powershop and Ecotricity
+    // by time of day.
+    const avgUsageIncreaseByHour = Array.from({length: 24}, (_, hour) => {
+        // Start with Ecotricity, since we don't have that for every month.
+        const allHourlyUsages = avgEcotricityHourlyUsageByMonth.filter(u => u.length > 0).map((avgEcotricityHourlyUsage, monthIndex) => {
+            const avgPowershopHourlyUsage = avgPowershopHourlyUsageByMonth[monthIndex];
+            return {
+                powershopUncontrolled: avgPowershopHourlyUsage[hour].uncontrolled,
+                powershopControlled: avgPowershopHourlyUsage[hour].controlled,
+                ecotricityUncontrolled: avgEcotricityHourlyUsage[hour].uncontrolled,
+                ecotricityControlled: avgEcotricityHourlyUsage[hour].controlled
+            };
+        });
+
+        const powershopUncontrolledTotal = getSum(allHourlyUsages.map(u => u.powershopUncontrolled));
+        const powershopControlledTotal = getSum(allHourlyUsages.map(u => u.powershopControlled));
+        const ecotricityUncontrolledTotal = getSum(allHourlyUsages.map(u => u.ecotricityUncontrolled));
+        const ecotricityControlledTotal = getSum(allHourlyUsages.map(u => u.ecotricityControlled));
+        return {
+            uncontrolledMultiplier: ecotricityUncontrolledTotal / powershopUncontrolledTotal,
+            controlledMultiplier: ecotricityControlledTotal / powershopControlledTotal
+        };
+    });
+
+    return Array.from({length: 12}, (_, monthIndex) => {
+        const avgEcotricityHourlyUsage = avgEcotricityHourlyUsageByMonth[monthIndex];
+        if (avgEcotricityHourlyUsage.length > 0) {
+            return avgEcotricityHourlyUsage;
+        }
+
+        // No Ecotricity data, so calculate based on Powershop data and average increases.
+        const powershopMonthHourlyUsage = avgPowershopHourlyUsageByMonth[monthIndex];
+        return Array.from({length: 24}, (_, hour) => {
+            const powershopUsage = powershopMonthHourlyUsage[hour];
+            const increases = avgUsageIncreaseByHour[hour];
+            return {
+                uncontrolled: powershopUsage.uncontrolled * increases.uncontrolledMultiplier,
+                controlled: powershopUsage.controlled * increases.controlledMultiplier
+            };
         });
     });
 }
