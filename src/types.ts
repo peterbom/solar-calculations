@@ -17,17 +17,27 @@ export type HourlyIrradianceByMonth = {
 export type HourlyUsageByMonth = HourlyUsageValue[][];
 
 export type HourlyUsageValue = {
-    uncontrolled: number,
-    controlled: number
+    phase1: number,
+    phase2: number,
+    phase3: number,
+    cylinder: number
 };
 
 export type SummableMeasurement<TData> = {
-    usageKWh: TData,
-    gridUsageKWh: TData,
-    panelUsageKWh: TData,
+    totalUsageKWh: TData,
+    controlledGridUsageKWh: TData,
+    phase1GridUsageKWh: TData,
+    phase2GridUsageKWh: TData,
+    phase3GridUsageKWh: TData,
+    phase1SolarUsageKWh: TData,
+    phase2SolarUsageKWh: TData,
+    phase3SolarUsageKWh: TData,
+    phase1ExportedKWh: TData,
+    phase2ExportedKWh: TData,
+    phase3ExportedKWh: TData,
     batteryUsageKWh: TData,
     generationKWh: TData,
-    resoldKWh: TData
+    batteryStoredKWh: TData
 };
 
 export type NonSummableMeasurement<TData> = {
@@ -55,11 +65,29 @@ export type SolarConfiguration = {
     northEastNumberOfPanels: number,
     panelRatingW: number,
     singlePanelAreaSqm: number,
-    batteryCapacityKWh: number
+    batteryCapacityKWh: number,
+    waterCylinderSource: WaterCylinderSource,
+    phaseConfiguration: PhaseConfigurationOption
 };
 
 export type PricingConfiguration = {
     gridPricePerUnit: number,
+    controlledPricePerUnit: number,
     feedbackPricePerUnit: number,
     installationCost: number
 };
+
+export enum WaterCylinderSource {
+    Grid,
+    Phase1,
+    Phase2,
+    Phase3
+}
+
+export enum PhaseConfigurationOption {
+    SinglePhase1Inverter,
+    SinglePhase2Inverter,
+    SinglePhase3Inverter,
+    ThreePhaseInverterEqualDistribution,
+    ThreePhaseInverterBalanced
+}

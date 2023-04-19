@@ -19,6 +19,10 @@ input[type='number'] {
   margin-left: 6px;
 }
 
+select {
+  margin-left: 6px;
+}
+
 dl {
   display: flex;
   flex-flow: row wrap;

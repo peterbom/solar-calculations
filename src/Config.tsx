@@ -1,4 +1,4 @@
-import { PricingConfiguration, SolarConfiguration } from "./types"
+import { PhaseConfigurationOption, PricingConfiguration, SolarConfiguration, WaterCylinderSource } from "./types"
 
 export interface ConfigProps {
     solar: SolarConfiguration
@@ -6,6 +6,21 @@ export interface ConfigProps {
     handleSolarConfigUpdate: (config: SolarConfiguration) => void
     handlePricingConfigUpdate: (config: PricingConfiguration) => void
 }
+
+const waterCylinderSourceDisplayNames: Record<keyof typeof WaterCylinderSource, string> = {
+    Grid: "Grid (controlled)",
+    Phase1: "Phase 1",
+    Phase2: "Phase 2",
+    Phase3: "Phase 3"
+};
+
+const phaseConfigurationDisplayNames: Record<keyof typeof PhaseConfigurationOption, string> = {
+    SinglePhase1Inverter: "Single Phase Inverter => 1",
+    SinglePhase2Inverter: "Single Phase Inverter => 2",
+    SinglePhase3Inverter: "Single Phase Inverter => 3",
+    ThreePhaseInverterEqualDistribution: "Three Phase Inverter - Equal Distribution",
+    ThreePhaseInverterBalanced: "Three Phase Inverter - Dynamic Phase Balancing"
+};
 
 export function Config(props: ConfigProps) {
     const totalPanelCount = props.solar.northWestNumberOfPanels + props.solar.northEastNumberOfPanels;
@@ -61,17 +76,34 @@ export function Config(props: ConfigProps) {
         </div>
         <div>
             <label>
-                Single panel area (sqm):
-                <input
-                    type='number'
-                    step="0.01"
-                    min="0"
-                    value={props.solar.singlePanelAreaSqm}
+                Water Cylinder Source:
+                <select
+                    value={WaterCylinderSource[props.solar.waterCylinderSource]}
                     onChange={e => props.handleSolarConfigUpdate({
                         ...props.solar,
-                        singlePanelAreaSqm: parseFloat(e.target.value)
+                        waterCylinderSource: WaterCylinderSource[e.target.value as keyof typeof WaterCylinderSource]
                     })}
-                />
+                >
+                    {Object.keys(waterCylinderSourceDisplayNames).map(k => (
+                        <option key={k} value={k}>{waterCylinderSourceDisplayNames[k as keyof typeof WaterCylinderSource]}</option>
+                    ))}
+                </select>
+            </label>
+        </div>
+        <div>
+            <label>
+                Phase Configuration:
+                <select
+                    value={PhaseConfigurationOption[props.solar.phaseConfiguration]}
+                    onChange={e => props.handleSolarConfigUpdate({
+                        ...props.solar,
+                        phaseConfiguration: PhaseConfigurationOption[e.target.value as keyof typeof PhaseConfigurationOption]
+                    })}
+                >
+                    {Object.keys(phaseConfigurationDisplayNames).map(k => (
+                        <option key={k} value={k}>{phaseConfigurationDisplayNames[k as keyof typeof PhaseConfigurationOption]}</option>
+                    ))}
+                </select>
             </label>
         </div>
         <div>
