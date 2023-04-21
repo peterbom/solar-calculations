@@ -8,39 +8,6 @@ import powershopUsageCsv from './assets/powershop_daily_usage.csv?url';
 import ecotricityUsageCsv from './assets/ecotricity_usage.csv?url';
 import { getAverage, getSum } from './stats';
 
-// TODO: Get data or make editable
-const hourlyPhaseUsageDistribution = new Map<number, [number, number]>([
-    [ 0, [0.125, 0.75]],
-    [ 1, [0.125, 0.75]],
-    [ 2, [0.125, 0.75]],
-    [ 3, [0.125, 0.75]],
-    [ 4, [0.125, 0.75]],
-    [ 5, [0.125, 0.75]],
-    [ 6, [0.125, 0.75]],
-    [ 7, [0.2,   0.5 ]],
-    [ 8, [0.4,   0.25]],
-    [ 9, [0.25,  0.45]],
-    [10, [0.25,  0.45]],
-    [11, [0.25,  0.45]],
-    [12, [0.25,  0.45]],
-    [13, [0.25,  0.45]],
-    [14, [0.25,  0.45]],
-    [15, [0.25,  0.45]],
-    [16, [0.25,  0.45]],
-    [17, [0.25,  0.45]],
-    [18, [0.25,  0.45]],
-    [19, [0.2,   0.5 ]],
-    [20, [0.125, 0.75]],
-    [21, [0.125, 0.75]],
-    [22, [0.125, 0.75]],
-    [23, [0.125, 0.75]],
-]);
-
-function getPhaseUsageDistribution(hour: number): [number, number, number] {
-    const [phase1Proportion, phase2Proportion] = hourlyPhaseUsageDistribution.get(hour)!;
-    return [phase1Proportion, phase2Proportion, 1 - (phase1Proportion + phase2Proportion)];
-}
-
 export async function getHourlyIrradianceByMonth(): Promise<HourlyIrradianceByMonth> {
     const niwaNorthWestData = await d3.csv<NiwaSourceColumns>(niwaNorthWestCsv);
     const niwaNorthEastData = await d3.csv<NiwaSourceColumns>(niwaNorthEastCsv);
@@ -86,12 +53,10 @@ function toHourlyUsageByMonth(
             dayDataByHour = monthData[monthData.length - 1];
         }
 
-        const [phase1Proportion, phase2Proportion, phase3Proportion] = getPhaseUsageDistribution(time.hour());
-        const totalUncontrolled = parseFloat(row['Meter 1 Value (kWh)'] || "0");
-        dayDataByHour[time.hour()].phase1 += totalUncontrolled * phase1Proportion;
-        dayDataByHour[time.hour()].phase2 += totalUncontrolled * phase2Proportion;
-        dayDataByHour[time.hour()].phase3 += totalUncontrolled * phase3Proportion;
-        dayDataByHour[time.hour()].cylinder += parseFloat(row['Meter 2 Value (kWh)'] || "0");
+        dayDataByHour[time.hour()].phase1 += parseFloat(row['Phase 1 (kWh)'] || "0");
+        dayDataByHour[time.hour()].phase2 += parseFloat(row['Phase 2 (kWh)'] || "0");
+        dayDataByHour[time.hour()].phase3 += parseFloat(row['Phase 3 (kWh)'] || "0");
+        dayDataByHour[time.hour()].cylinder += parseFloat(row['Controlled (kWh)'] || "0");
         return monthlyData;
     }, Array.from({length: 12}, () => []));
 
@@ -112,11 +77,20 @@ function toHourlyUsageByMonth(
 
     const allEcotricityHourlyUsage = allEcotricityHourlyUsageByMonth.flatMap(monthUsage => monthUsage);
 
-    // Get controlled as a proportion of total by time of day
-    const hourlyProportionOfCylinderToTotal = Array.from({length: 24}, (_, hour) => {
+    // Get each phase + controlled as a proportion of total usage
+    const hourlyUsageDistribution = Array.from({length: 24}, (_, hour) => {
+        const totalPhase1 = getSum(allEcotricityHourlyUsage.map(u => u[hour].phase1));
+        const totalPhase2 = getSum(allEcotricityHourlyUsage.map(u => u[hour].phase2));
+        const totalPhase3 = getSum(allEcotricityHourlyUsage.map(u => u[hour].phase3));
         const totalCylinder = getSum(allEcotricityHourlyUsage.map(u => u[hour].cylinder));
-        const total = getSum(allEcotricityHourlyUsage.map(u => u[hour].phase1 + u[hour].phase2 + u[hour].phase3 + u[hour].cylinder));
-        return totalCylinder / total;
+        const total = totalPhase1 + totalPhase2 + totalPhase3 + totalCylinder;
+
+        return {
+            phase1: totalPhase1 / total,
+            phase2: totalPhase2 / total,
+            phase3: totalPhase3 / total,
+            cylinder: totalCylinder / total
+        };
     });
 
     // Convert Powershop data from half-hourly to hourly
@@ -154,16 +128,13 @@ function toHourlyUsageByMonth(
         const allDaysHourlyUsage = powershopHourlyUsages.filter(u => u.month === monthIndex);
         return Array.from({length: 24}, (_, hour) => {
             const avgUseForHour = getAverage(allDaysHourlyUsage.map(u => u.hourlyUsage[hour]));
-            // We don't have the relationship between controlled and uncontrolled here,
+            // We don't have the relative proportions here,
             // so use what we've found for this hour from Ecotricity.
-            const cylinder = hourlyProportionOfCylinderToTotal[hour] * avgUseForHour;
-            const uncontrolled = avgUseForHour - cylinder;
-            const [phase1Proportion, phase2Proportion, phase3Proportion] = getPhaseUsageDistribution(hour);
             return {
-                phase1: uncontrolled * phase1Proportion,
-                phase2: uncontrolled * phase2Proportion,
-                phase3: uncontrolled * phase3Proportion,
-                cylinder
+                phase1: hourlyUsageDistribution[hour].phase1 * avgUseForHour,
+                phase2: hourlyUsageDistribution[hour].phase2 * avgUseForHour,
+                phase3: hourlyUsageDistribution[hour].phase3 * avgUseForHour,
+                cylinder: hourlyUsageDistribution[hour].cylinder * avgUseForHour
             };
         });
     });

@@ -289,7 +289,7 @@ function getSummary(pricingConfig: PricingConfiguration, calculatedData: Calcula
             <dd>${Math.round(annualCostWithoutSolar)} - ${Math.round(annualCostWithSolar)} = ${Math.round(annualSaving)}</dd>
 
             <dt>Time to recoup cost</dt>
-            <dd>${pricingConfig.installationCost} / ${Math.round(annualSaving)} = {Math.round(timeToRecoupCost)} years</dd>
+            <dd>${pricingConfig.installationCost} / ${Math.round(annualSaving)} = {timeToRecoupCost.toPrecision(4)} years</dd>
         </dl>
     </>
     );
