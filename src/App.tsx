@@ -102,6 +102,22 @@ export default function App() {
         setDisplayCumulative(!displayCumulative);
     }
 
+    function getTotalUsage(data: CalculatedData, monthIndex: number) {
+        return getSumOfHourlyDataRanges(
+            data.hourlyMeasurementsByMonth.phase1TotalUsageKWh[monthIndex],
+            data.hourlyMeasurementsByMonth.phase2TotalUsageKWh[monthIndex],
+            data.hourlyMeasurementsByMonth.phase3TotalUsageKWh[monthIndex],
+            data.hourlyMeasurementsByMonth.cylinderUsageKWh[monthIndex]);
+    }
+
+    function getTotalCumulativeUsage(data: CalculatedData, monthIndex: number) {
+        return getSumOfHourlyDataRanges(
+            data.cumulativeHourlyMeasurementsByMonth.phase1TotalUsageKWh[monthIndex],
+            data.cumulativeHourlyMeasurementsByMonth.phase2TotalUsageKWh[monthIndex],
+            data.cumulativeHourlyMeasurementsByMonth.phase3TotalUsageKWh[monthIndex],
+            data.cumulativeHourlyMeasurementsByMonth.cylinderUsageKWh[monthIndex]);
+    }
+
     function getTotalGridUsage(data: CalculatedData, monthIndex: number) {
         return getSumOfHourlyDataRanges(
             data.hourlyMeasurementsByMonth.phase1GridUsageKWh[monthIndex],
@@ -166,22 +182,38 @@ export default function App() {
             <label htmlFor="toggle-cumulative">Cumulative</label>
             
             <h3>Total Usage</h3>
-            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.totalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly usage (kW)' viewDimensions={viewDimensions} />}
-            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.totalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative usage (kW)' viewDimensions={viewDimensions} />}
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => getTotalUsage(calculatedData, i)} propertyDisplayName='Drawn' yAxisDescription='Hourly usage (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => getTotalCumulativeUsage(calculatedData, i)} propertyDisplayName='Drawn' yAxisDescription='Cumulative usage (kW)' viewDimensions={viewDimensions} />}
+
+            <h4>Phase 1 Total Usage</h4>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.phase1TotalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.phase1TotalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
+
+            <h4>Phase 2 Total Usage</h4>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.phase2TotalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.phase2TotalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
+
+            <h4>Phase 3 Total Usage</h4>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.phase3TotalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.phase3TotalUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
+
+            <h4>Cylinder Total Usage</h4>
+            {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.cylinderUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
+            {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.cylinderUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
             <h3>Total Grid Usage</h3>
             {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => getTotalGridUsage(calculatedData, i)} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
             {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => getTotalCumulativeGridUsage(calculatedData, i)} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
-            <h4>Phase 1 Usage</h4>
+            <h4>Phase 1 Grid Usage</h4>
             {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.phase1GridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
             {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.phase1GridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
-            <h4>Phase 2 Usage</h4>
+            <h4>Phase 2 Grid Usage</h4>
             {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.phase2GridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
             {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.phase2GridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
-            <h4>Phase 3 Usage</h4>
+            <h4>Phase 3 Grid Usage</h4>
             {!displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.hourlyMeasurementsByMonth.phase3GridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Hourly draw (kW)' viewDimensions={viewDimensions} />}
             {displayCumulative && <MonthlyChart monthlyValuesRetriever={i => calculatedData.cumulativeHourlyMeasurementsByMonth.phase3GridUsageKWh[i]} propertyDisplayName='Drawn' yAxisDescription='Cumulative draw (kW)' viewDimensions={viewDimensions} />}
 
@@ -230,7 +262,11 @@ function getSumOfHourlyDataRanges(...ranges: number[][]) {
 }
 
 function getSummary(pricingConfig: PricingConfiguration, calculatedData: CalculatedData) {
-    const annualUsageKWh = calculatedData.annualMeasurements.totalUsageKWh;
+    const annualUsageKWh =
+        calculatedData.annualMeasurements.cylinderUsageKWh +
+        calculatedData.annualMeasurements.phase1TotalUsageKWh +
+        calculatedData.annualMeasurements.phase2TotalUsageKWh +
+        calculatedData.annualMeasurements.phase3TotalUsageKWh;
     const annualCostWithoutSolar = annualUsageKWh * pricingConfig.gridPricePerUnit;
     const annualGridUsage =
         calculatedData.annualMeasurements.controlledGridUsageKWh +

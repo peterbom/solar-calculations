@@ -29,7 +29,10 @@ export function getHourlyMeasurementsByMonth(
 
     const singleMonthMeasurements = Array.from({ length: 12 }, (_, monthIndex) => getSingleMonthData(monthIndex));
     return {
-        totalUsageKWh: singleMonthMeasurements.map(m => m.totalUsageKWh),
+        phase1TotalUsageKWh: singleMonthMeasurements.map(m => m.phase1TotalUsageKWh),
+        phase2TotalUsageKWh: singleMonthMeasurements.map(m => m.phase2TotalUsageKWh),
+        phase3TotalUsageKWh: singleMonthMeasurements.map(m => m.phase3TotalUsageKWh),
+        cylinderUsageKWh: singleMonthMeasurements.map(m => m.cylinderUsageKWh),
         controlledGridUsageKWh: singleMonthMeasurements.map(m => m.controlledGridUsageKWh),
         phase1GridUsageKWh: singleMonthMeasurements.map(m => m.phase1GridUsageKWh),
         phase2GridUsageKWh: singleMonthMeasurements.map(m => m.phase2GridUsageKWh),
@@ -49,7 +52,10 @@ export function getHourlyMeasurementsByMonth(
 
 export function getCumulativeHourlyMeasurementsByMonth(data: SummableHourlyMeasurementsByMonth): SummableHourlyMeasurementsByMonth {
     return {
-        totalUsageKWh: data.totalUsageKWh.map(accumulate),
+        phase1TotalUsageKWh: data.phase1TotalUsageKWh.map(accumulate),
+        phase2TotalUsageKWh: data.phase2TotalUsageKWh.map(accumulate),
+        phase3TotalUsageKWh: data.phase3TotalUsageKWh.map(accumulate),
+        cylinderUsageKWh: data.cylinderUsageKWh.map(accumulate),
         controlledGridUsageKWh: data.controlledGridUsageKWh.map(accumulate),
         phase1GridUsageKWh: data.phase1GridUsageKWh.map(accumulate),
         phase2GridUsageKWh: data.phase2GridUsageKWh.map(accumulate),
@@ -72,7 +78,10 @@ export function getAnnualMeasurements(data: SummableHourlyMeasurementsByMonth): 
     }
 
     return {
-        totalUsageKWh: getSum(data.totalUsageKWh.map(getSumForMonth)),
+        phase1TotalUsageKWh: getSum(data.phase1TotalUsageKWh.map(getSumForMonth)),
+        phase2TotalUsageKWh: getSum(data.phase2TotalUsageKWh.map(getSumForMonth)),
+        phase3TotalUsageKWh: getSum(data.phase3TotalUsageKWh.map(getSumForMonth)),
+        cylinderUsageKWh: getSum(data.cylinderUsageKWh.map(getSumForMonth)),
         controlledGridUsageKWh: getSum(data.controlledGridUsageKWh.map(getSumForMonth)),
         phase1GridUsageKWh: getSum(data.phase1GridUsageKWh.map(getSumForMonth)),
         phase2GridUsageKWh: getSum(data.phase2GridUsageKWh.map(getSumForMonth)),
@@ -94,7 +103,10 @@ function getHourlyMeasurementsForSingleMonth(
     usage: HourlyUsageValue[],
     generationKWh: number[]
 ): HourlyMeasurementsForSingleMonth {
-    const totalUsageKWh = Array<number>(24).fill(0);
+    const phase1TotalUsageKWh = Array<number>(24).fill(0);
+    const phase2TotalUsageKWh = Array<number>(24).fill(0);
+    const phase3TotalUsageKWh = Array<number>(24).fill(0);
+    const cylinderUsageKWh = Array<number>(24).fill(0);
     const controlledGridUsageKWh = Array<number>(24).fill(0);
     const phase1GridUsageKWh = Array<number>(24).fill(0);
     const phase2GridUsageKWh = Array<number>(24).fill(0);
@@ -148,7 +160,10 @@ function getHourlyMeasurementsForSingleMonth(
                 surpluses = surpluses.map(s => ({...s, surplus: s.surplus - perPhaseBatteryTopup})).filter(s => s.surplus > 0);
             }
 
-            totalUsageKWh[hour] = used.cylinder + used.phase1 + used.phase2 + used.phase3;
+            phase1TotalUsageKWh[hour] = used.phase1;
+            phase2TotalUsageKWh[hour] = used.phase2;
+            phase3TotalUsageKWh[hour] = used.phase3;
+            cylinderUsageKWh[hour] = used.cylinder;
             controlledGridUsageKWh[hour] = solarConfiguration.waterCylinderSource === WaterCylinderSource.Grid ? used.cylinder : 0;
             phase1GridUsageKWh[hour] = getSum(deficits.filter(d => d.phase === 1).map(d => d.deficit));
             phase2GridUsageKWh[hour] = getSum(deficits.filter(d => d.phase === 2).map(d => d.deficit));
@@ -171,8 +186,9 @@ function getHourlyMeasurementsForSingleMonth(
                 batteryUsageKWh[hour]
             ];
 
-            if (getSum(usageComponents).toPrecision(8) !== totalUsageKWh[hour].toPrecision(8)) {
-                throw new Error(`Wrong usage: Total: ${totalUsageKWh[hour]}, Sum: ${getSum(usageComponents)}`);
+            const totalUsageKWh = used.phase1 + used.phase2 + used.phase3 + used.cylinder;
+            if (getSum(usageComponents).toPrecision(8) !== totalUsageKWh.toPrecision(8)) {
+                throw new Error(`Wrong usage: Total: ${totalUsageKWh}, Sum: ${getSum(usageComponents)}`);
             }
 
             const generationComponents = [
@@ -188,7 +204,10 @@ function getHourlyMeasurementsForSingleMonth(
     }
 
     return {
-        totalUsageKWh ,
+        phase1TotalUsageKWh,
+        phase2TotalUsageKWh,
+        phase3TotalUsageKWh,
+        cylinderUsageKWh,
         controlledGridUsageKWh,
         phase1GridUsageKWh,
         phase2GridUsageKWh,

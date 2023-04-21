@@ -24,7 +24,10 @@ export type HourlyUsageValue = {
 };
 
 export type SummableMeasurement<TData> = {
-    totalUsageKWh: TData,
+    phase1TotalUsageKWh: TData,
+    phase2TotalUsageKWh: TData,
+    phase3TotalUsageKWh: TData,
+    cylinderUsageKWh: TData,
     controlledGridUsageKWh: TData,
     phase1GridUsageKWh: TData,
     phase2GridUsageKWh: TData,
